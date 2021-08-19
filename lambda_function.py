@@ -73,7 +73,26 @@ def parse_tag(instance, key):
     return None
 
 def instance_desc(instance):
-    return f'{instance.id}({parse_tag(instance, "Name")})'
+    # return f'{instance.id}({parse_tag(instance, "Name")})'
+    return f'{parse_tag(instance, "Name")}'
+
+def delete_remind(ts):
+    url = "https://slack.com/api/chat.delete"
+    headers = {
+        "Content-Type": "application/json; charset=UTF-8",
+        "Authorization": f"Bearer {slack_bot_token}"
+    }
+
+    data = {
+        "channel": slack_channel,
+        "ts": ts,
+    }
+    
+    req = urllib.request.Request(url, json.dumps(data).encode(), headers)
+    with urllib.request.urlopen(req) as res:
+        body = res.read()
+        jbody = json.loads(body)
+        return jbody['ts']
 
 def post_message(message):
     url = "https://slack.com/api/chat.postMessage"
@@ -91,7 +110,8 @@ def post_message(message):
     req = urllib.request.Request(url, json.dumps(data).encode(), headers)
     with urllib.request.urlopen(req) as res:
         body = res.read()
-        logger.info(body)
+        jbody = json.loads(body)
+        return jbody['ts']
 
 def post_plain(message):
     template = """[
@@ -109,7 +129,7 @@ def post_plain(message):
     m = m.replace("%message%", message)
     message = json.loads(m)
 
-    post_message(message)
+    return post_message(message)
 
 def post_remind(instance, stopTime):
     def stoptime(dt, ts):
@@ -124,7 +144,7 @@ def post_remind(instance, stopTime):
     m = m.replace('%datetime-3%', stoptime(stopTime, timedelta(days=1)))
     message = json.loads(m)
 
-    post_message(message)
+    return post_message(message)
 
 def process_running(instance, data):
     if 'shutdownSchedule' not in data:
@@ -148,16 +168,18 @@ def process_running(instance, data):
             logger.info('invoke shutdown...')
             instance.stop()
 
+            if 'sendRemind' in data:
+                delete_remind(data['sendRemind'])
+
         elif now > remindTime and 'sendRemind' not in data:
             # リマインド送信
             logger.info('send shutdown remind')
-            post_remind(instance, stopTime)
-            data['sendRemind'] = True
+            data['sendRemind'] = post_remind(instance, stopTime)
         
     if 'state' in data and data['state'] != "running":
         logger.info('state -> running')
         if verbose_notification:
-            post_plain(f'{instance_desc(instance)} が起動しました。\n自動停止予定時刻は {data["shutdownSchedule"]} です。')
+            post_plain(f'{instance_desc(instance)} が起動しました。自動停止予定時刻は {data["shutdownSchedule"]} です。')
         
 
     data['state'] = 'running'
@@ -172,6 +194,7 @@ def process_stopped(instance, data):
         
     if 'shutdownSchedule' in data:
         del data['shutdownSchedule']
+    if 'sendRemind' in data:
         del data['sendRemind']
 
     data['state'] = 'stopped'

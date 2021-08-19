@@ -54,7 +54,7 @@ AWSの自動停止ソリューションは数あるもののどれも機能が�
     "remind" : "10",                               // リマインドメッセージ送るタイミング(予定時刻 n分前)
     "state" : "running",                           // 前回のstate
     "shutdownSchedule" : "YYYY-MM-DD hh:mm:ss",    // シャットダウン予定時刻
-    "sendRemind": True                             // 通知送信済か？
+    "sendRemind": "xxxxxx.xx"                      // リマインドメッセージのTS
 }
 ```
 
@@ -80,9 +80,11 @@ AWSの自動停止ソリューションは数あるもののどれも機能が�
   * "state" = "running"  
     shutdownSchedule削除  
     sendRemind 削除  
+    slackに送ったリマインドメッセージ削除  
 
 * アクションメッセージ受信時
 
   shutdownSchedule更新  
-  sendRemind=False
+  sendRemind 削除  
+  slackに送ったリマインドメッセージ削除  
 
