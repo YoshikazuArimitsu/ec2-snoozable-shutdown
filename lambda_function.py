@@ -10,11 +10,11 @@ logger.setLevel(logging.INFO)
 JST = timezone(timedelta(hours=+9), 'JST')
 
 # 
-verbose_notification = True
+verbose_notification = False
 aws_region = 'ap-northeast-1'
 slack_bot_token = 'xoxb-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
 slack_channel = 'G01952TR7DK'
-schedule_tag = 'ec2_snoozable_shutdown'
+schedule_tag = 'ec2-snoozable-shutdown'
 
 reminder_template = """
 [

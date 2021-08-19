@@ -22,7 +22,8 @@ AWSの自動停止ソリューションは数あるもののどれも機能が�
    
    * Interactve Components を有効化し、Interactivity & Shortcuts のリクエストURLに API Gateway のメソッドのURLを入れる
    * Botを有効化し、トークンを取っておく
-   * ワークスペース・通知チャンネルに追加する
+   * Permssionから chat:write スコープを有効化し、ワークスペースにインストールする
+   * アプリを通知チャンネルに追加する
   
 4. 諸々の情報をソース先頭の情報にコピペする
    
@@ -35,7 +36,7 @@ AWSの自動停止ソリューションは数あるもののどれも機能が�
 6. 操作対象EC2のタグ ec2-snoozable-shutdown に停止時刻と何分前にリマインドするか入れておく
 
     ```
-    {"defaultShutdown": "1930", "remind": "10"}
+    {"defaultShutdown": "1930", "remind": "30"}
     ```
 
 (*) verbose_notification = True だと起動・停止検出時にもSlackにメッセージを送信します。邪魔なら外してください。
