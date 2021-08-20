@@ -137,7 +137,8 @@ def post_remind(instance, stopTime):
         return d.strftime('%Y-%m-%d_%H:%M:%S%z')
 
     m = reminder_template
-    m = m.replace("%message-text%", f'{instance_desc(instance)} は {stopTime} に停止予定ですよ')
+    stopStr = stopTime.strftime('%H時%M分')
+    m = m.replace("%message-text%", f'{instance_desc(instance)} は {stopStr} に停止予定ですよ')
     m = m.replace('%machine%', instance.id)
     m = m.replace('%datetime-1%', stoptime(stopTime, timedelta(hours=1)))
     m = m.replace('%datetime-2%', stoptime(stopTime, timedelta(hours=3)))
