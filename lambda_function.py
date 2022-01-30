@@ -1,3 +1,4 @@
+import os
 import boto3
 import json, logging
 import traceback
@@ -11,10 +12,10 @@ JST = timezone(timedelta(hours=+9), 'JST')
 
 # 
 verbose_notification = False
-aws_region = 'ap-northeast-1'
-slack_bot_token = 'xoxb-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
-slack_channel = 'G01952TR7DK'
-schedule_tag = 'ec2-snoozable-shutdown'
+aws_region = os.getenv("AWS_REGION", 'ap-northeast-1')
+slack_bot_token = os.getenv("SLACK_BOT_TOKEN", 'xoxb-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')
+slack_channel = os.getenv('SLACK_CHANNEL', 'xxxxxxxx')
+schedule_tag = os.getenv('SCHEDULE_TAG', 'ec2-snoozable-shutdown')
 
 reminder_template = """
 [
@@ -147,6 +148,43 @@ def post_remind(instance, stopTime):
 
     return post_message(message)
 
+def autoSnoozeByCpu(instance, data):
+    try:
+        if 'autoSnoozeCpuThreshold' not in data:
+            return False
+        thresold = int(data['autoSnoozeCpuThreshold'])
+
+        if thresold > 0:
+            cloudwatch = boto3.client("cloudwatch", region_name=aws_region)
+            response = cloudwatch.get_metric_statistics(
+                    Namespace='AWS/EC2',
+                    MetricName='CPUUtilization',
+                    Dimensions=[
+                    {
+                        'Name': 'InstanceId',
+                        'Value': instance.id
+                    },
+                    ],
+                    StartTime=datetime.utcnow() - timedelta(seconds=600),
+                    EndTime=datetime.utcnow(),
+                    Period=300,
+                    Statistics=['Average']
+            )
+            average = response['Datapoints'][0]['Average'] * 100
+
+            if average > thresold:
+                # 自動延長
+                stopTime = datetime.now(JST) + timedelta(hours=3)
+                logger.info(f'update shutdownSchedule {stopTime}')
+                data['shutdownSchedule'] = stopTime.strftime('%Y-%m-%d %H:%M:%S%z')
+                post_plain(f'{instance_desc(instance)} の停止時刻を自動延長しました(next shutdown={data["shutdownSchedule"]} , CPU Info avl={average}%)')
+                return True
+
+        return False
+    except BaseException as ex:
+        logger.info(str(ex))
+    return False
+
 def process_running(instance, data):
     if 'shutdownSchedule' not in data:
         now = datetime.now(JST)
@@ -173,9 +211,13 @@ def process_running(instance, data):
                 delete_remind(data['sendRemind'])
 
         elif now > remindTime and 'sendRemind' not in data:
-            # リマインド送信
-            logger.info('send shutdown remind')
-            data['sendRemind'] = post_remind(instance, stopTime)
+            # 自動延長(CPU利用率が設定値以上の場合、自動で伸ばす)
+            if autoSnoozeByCpu(instance, data):
+                pass
+            else:
+                # リマインド送信
+                logger.info('send shutdown remind')
+                data['sendRemind'] = post_remind(instance, stopTime)
         
     if 'state' in data and data['state'] != "running":
         logger.info('state -> running')
@@ -207,7 +249,6 @@ def ec2_poll():
         Filters=[{'Name': 'instance-state-name', 'Values': ['pending','running','stopping','stopped']}])
 
     for instance in instances:
-        # logger.info(instance.tags)
         try:
             logger.info(f"EC2 instance {instance.id}({parse_tag(instance, 'Name')})")
             sdata = parse_tag(instance, schedule_tag)

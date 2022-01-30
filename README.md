@@ -36,11 +36,11 @@ AWSの自動停止ソリューションは数あるもののどれも機能が�
 6. 操作対象EC2のタグ ec2-snoozable-shutdown に停止時刻と何分前にリマインドするか入れておく
 
     ```
-    {"defaultShutdown": "1930", "remind": "30"}
+    {"defaultShutdown": "1930", "remind": "30", "autoSnoozeCpuThreshold(\*2)": "80"}
     ```
 
 (*) verbose_notification = True だと起動・停止検出時にもSlackにメッセージを送信します。邪魔なら外してください。
-
+(\*2) autoSnoozeCpuThreshold オプションが指定されている場合、CPU利用率が設定値を越えていると自動でシャットダウンを延長します。
 
 ## 開発仕様メモ
 
@@ -54,7 +54,8 @@ AWSの自動停止ソリューションは数あるもののどれも機能が�
     "remind" : "10",                               // リマインドメッセージ送るタイミング(予定時刻 n分前)
     "state" : "running",                           // 前回のstate
     "shutdownSchedule" : "YYYY-MM-DD hh:mm:ss",    // シャットダウン予定時刻
-    "sendRemind": "xxxxxx.xx"                      // リマインドメッセージのTS
+    "sendRemind": "xxxxxx.xx",                     // リマインドメッセージのTS
+    "autoSnoozeCpuThreshold": "30"                 // CPU利用率がこの値を越えている場合、自動延長
 }
 ```
 
