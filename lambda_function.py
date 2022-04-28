@@ -177,7 +177,7 @@ def autoSnoozeByCpu(instance, data):
                 stopTime = datetime.now(JST) + timedelta(hours=3)
                 logger.info(f'update shutdownSchedule {stopTime}')
                 data['shutdownSchedule'] = stopTime.strftime('%Y-%m-%d %H:%M:%S%z')
-                post_plain(f'{instance_desc(instance)} の停止時刻を自動延長しました(next shutdown={data["shutdownSchedule"]} , CPU Info avl={average}%)')
+                post_plain(f'{instance_desc(instance)} の停止時刻を自動延長しました。次回チェック:{stopTime.strftime('%Y-%m-%d %H:%M')} , CPU 使用率/停止閾値={average:.2f}/{thresold}%)')
                 return True
 
         return False
